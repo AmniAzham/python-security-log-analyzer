@@ -1,0 +1,1 @@
+"""Educational authentication log analyzer."""
