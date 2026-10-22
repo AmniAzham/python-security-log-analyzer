@@ -45,7 +45,11 @@ def allowed_origins() -> list[str]:
 
 
 app = FastAPI(title='Security Log Analyzer API', version='1.0.0')
-app.add_middleware(CORSMiddleware, allow_origins=allowed_origins(),
+# Retain exactly the startup settings installed in middleware. Re-reading the
+# environment in health() could misleadingly report different active settings.
+app.state.cors_origins = allowed_origins()
+app.state.revision = os.getenv('RENDER_GIT_COMMIT', 'unknown')
+app.add_middleware(CORSMiddleware, allow_origins=app.state.cors_origins,
                    allow_methods=['GET', 'POST'], allow_headers=['Content-Type'],
                    allow_credentials=False)
 
@@ -93,8 +97,12 @@ def analyze_bytes(content: bytes, settings: RuleSettings) -> dict:
 
 
 @app.get('/api/health')
-def health() -> dict:
-    return {'status': 'ok'}
+def health(details: bool = False) -> dict:
+    result = {'status': 'ok'}
+    if details:
+        # These are public deployment identifiers, never credentials or CSV data.
+        result.update(revision=app.state.revision, cors_origins=app.state.cors_origins)
+    return result
 
 
 @app.post('/api/analyze')

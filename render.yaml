@@ -15,4 +15,4 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.14
       - key: FRONTEND_ORIGINS
-        sync: false
+        value: https://authwatch-85466.web.app,https://authwatch-85466.firebaseapp.com

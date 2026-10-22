@@ -87,7 +87,7 @@ FRONTEND_ORIGINS=https://YOUR_HOSTING_SITE.web.app,https://YOUR_HOSTING_SITE.fir
 
 Use exact origins without trailing slashes. Never set `FRONTEND_ORIGINS=*`. Render supplies `PORT`; do not hardcode a local port. Choose a nearby available region shown in the console; do not assume every region supports the selected plan.
 
-Alternatively, after the configuration files are approved and pushed, import `render.yaml` as a Blueprint. Confirm the instance is Free and manually supply `FRONTEND_ORIGINS` before applying it. Do not create both the manual and Blueprint services.
+Alternatively, after the configuration files are approved and pushed, import `render.yaml` as a Blueprint. Confirm the instance is Free and verify the explicit `FRONTEND_ORIGINS` value before applying it. Do not create both the manual and Blueprint services.
 
 Wait for a successful deployment. Record the actual assigned HTTPS address. A proposed service name is not a guaranteed URL.
 
@@ -152,3 +152,61 @@ Local verification completed without creating hosting resources:
 - Repository file review found no credential-pattern matches. The only included CSV is the fictional 19-event sample using documentation-only IP addresses. Dependency folders, private environment files, caches, generated reports, and build output are excluded by Git ignore rules.
 
 Still pending: actual Firebase Hosting site domains, actual Render API URL, provider-side Free-plan/Blueprint availability checks, account authorization, and post-deployment HTTPS/CORS/end-to-end checks. These are not local code-test failures; they cannot be confirmed before an authorized resource setup/deployment. No live URL is being claimed by this review.
+
+
+## Diagnosing the deployed Firebase CORS mismatch
+
+The confirmed Firebase site is `https://authwatch-85466.web.app` and the API is
+`https://authwatch-api.onrender.com`. The frontend's request reaches the right
+API, but Chrome reports a missing `Access-Control-Allow-Origin` even on HTTP 200.
+That means the browser cannot read the response. It is not a JSON-parser failure.
+
+The middleware reads `FRONTEND_ORIGINS` at Python import/startup. Saving a setting
+without a successful service restart does not prove that the running middleware
+uses it. `autoDeploy: false` also means a Git push alone does not update Render.
+The repository branch's revision and Render's running revision are separate facts.
+
+`render.yaml` now specifies only these two production origins explicitly:
+
+```text
+https://authwatch-85466.web.app,https://authwatch-85466.firebaseapp.com
+```
+
+Editing YAML in Git does not configure an existing manually created service.
+Check Render's actual service Environment settings and deploy the intended commit.
+Do not create a second service, change plans, or enable billing for this repair.
+`OPTIONS` does not need adding to `allow_methods`: CORSMiddleware already handles
+preflight OPTIONS and checks whether the requested method (POST) is allowed.
+
+After an authorized commit/push and manual Render deployment, open:
+
+```text
+https://authwatch-api.onrender.com/api/health?details=true
+```
+
+Expect `status: ok`, the full deployed commit in `revision`, and the two Firebase
+origins in `cors_origins`. These fields expose public configuration only. They
+report the startup snapshot actually used by middleware, not a fresh environment
+read. `revision: unknown` means Render did not supply `RENDER_GIT_COMMIT`; verify
+the commit in Render's deployment screen instead. A response containing only
+`status` indicates that this diagnostic code is not running at that URL yet.
+The regular `/api/health` response remains unchanged for existing health checks.
+
+From Windows PowerShell, inspect the response headers without any real logs:
+
+```powershell
+curl.exe -i -X OPTIONS "https://authwatch-api.onrender.com/api/analyze" -H "Origin: https://authwatch-85466.web.app" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+curl.exe -i -X POST "https://authwatch-api.onrender.com/api/sample" -H "Origin: https://authwatch-85466.web.app"
+```
+
+Both should return `Access-Control-Allow-Origin: https://authwatch-85466.web.app`.
+The sample POST should contain 19 events and four alerts. Repeat the preflight
+against `/api/sample` if needed. An unrelated origin must not receive permission.
+If health reports correct origins but these requests still lack the header,
+inspect the actual response body/type, redirects, Render deployment logs, and
+whether the hostname serves this FastAPI app; a proxy-generated response may
+never pass through the application's CORS middleware.
+
+Live Render headers/revision could not be inspected from this Codex environment
+because its network proxy blocked the public requests with HTTP 403. Local tests
+verify exact-origin POST and OPTIONS handling, but do not establish a live repair.
