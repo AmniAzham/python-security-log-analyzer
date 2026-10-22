@@ -1,10 +1,26 @@
 # Python Security Log Analyzer
 
-A beginner SOC portfolio project that reads synthetic authentication logs, detects suspicious login patterns with three time-based rules, and exports alerts to CSV. Alerts are investigation leads, not proof of an attack.
+A beginner SOC portfolio project with a React dashboard, FastAPI backend, and the original Python command-line analyzer. It reads synthetic authentication logs, detects suspicious login patterns with three time-based rules, and exports alerts to CSV. Alerts are investigation leads, not proof of an attack.
+
+## New: full-stack dashboard
+
+The web app adds CSV upload, fictional sample loading, overview cards, hourly login activity, rule-count charts, severity/rule filters, alert details, editable thresholds, and CSV download. It reuses the existing Python engine. No database, Firebase credentials, or user accounts are needed.
+
+**Start here:** [Web application guide](docs/WEB_APP.md) for step-by-step Windows commands, architecture, React explanations, privacy limits, automated/manual tests, and Firebase Hosting preparation. The frontend and API have not been deployed.
+
+```text
+frontend/               React + Vite dashboard, utility and browser tests
+backend/                FastAPI adapter and API dependency requirements
+tests/test_backend.py   New API tests; original tests remain unchanged
+docs/WEB_APP.md         Learning, setup, privacy, testing, and deployment
+firebase.json           Static hosting configuration for frontend/dist
+```
+
+The sections below document the original CLI and detection semantics. Its code, behavior, and original 28 tests are preserved.
 
 ## Learning objectives
 
-Practice interpreting authentication events, validating data, applying sliding windows, generating actionable alerts, and checking detection logic with deterministic offline tests. The project uses Python 3, standard-library `csv`, `datetime`, `ipaddress`, `argparse`, and `unittest`; no pandas, external dependencies, network services, or credentials are required.
+Practice interpreting authentication events, validating data, applying sliding windows, generating actionable alerts, and checking detection logic with deterministic offline tests. The original CLI uses Python 3, standard-library `csv`, `datetime`, `ipaddress`, `argparse`, and `unittest`; no pandas, external dependencies, network services, or credentials are required for the CLI. The optional web interface adds React/Vite and FastAPI dependencies, documented in the web guide.
 
 Authentication logs record a sign-in attempt: its time, account, source address, and outcome. A SOC analyst groups these records to recognize patterns that would be hard to see in individual events.
 
@@ -24,7 +40,9 @@ python-security-log-analyzer/
 │   └── main.py                  # Arguments, errors, summary, exit status
 └── tests/
     ├── __init__.py
-    └── test_detectors.py        # Unit and CLI integration tests
+    ├── test_detectors.py        # Unit and CLI integration tests
+    ├── test_regressions.py      # File protection and datetime edge cases
+    └── test_backend.py          # Optional web API tests
 ```
 
 The parser produces typed `Event` objects and data-quality warnings. The detector receives those events and returns typed `Alert` objects, without reading or writing files. The CLI connects parsing, detection, and export. Separating these jobs makes each piece easier to explain and test.
@@ -45,7 +63,7 @@ On Windows, use `py -m venv .venv`, then `.venv\Scripts\Activate.ps1` in PowerSh
 
 ```sh
 python -m src.main --input data/sample_auth_logs.csv --output alerts.csv
-python -m unittest discover -s tests -v
+python -m unittest tests.test_detectors tests.test_regressions -v
 python -m src.main --help
 ```
 

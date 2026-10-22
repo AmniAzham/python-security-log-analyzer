@@ -221,3 +221,17 @@ __marimo__/
 
 # Generated analyzer report
 /alerts.csv
+
+# Web dependencies, build output, and local deployment state
+node_modules/
+frontend/dist/
+.firebase/
+.firebaserc
+.env.*
+!.env.example
+!frontend/.env.example
+firebase-debug.log*
+service-account*.json
+*serviceAccount*.json
+playwright-report/
+test-results/
