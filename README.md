@@ -16,6 +16,8 @@ docs/WEB_APP.md         Learning, setup, privacy, testing, and deployment
 firebase.json           Static hosting configuration for frontend/dist
 ```
 
+**Want a public portfolio link?** See the [Firebase + Render deployment plan](docs/DEPLOYMENT_PLAN.md) for the selected free-tier configuration, usage limits, and approval steps. Nothing has been deployed.
+
 The sections below document the original CLI and detection semantics. Its code, behavior, and original 28 tests are preserved.
 
 ## Learning objectives

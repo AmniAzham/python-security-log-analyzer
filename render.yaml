@@ -1,0 +1,18 @@
+# Deployment template only: importing this file creates a service.
+# Do not import/apply until the owner approves the plan and current pricing.
+services:
+  - type: web
+    name: authwatch-api
+    runtime: python
+    repo: https://github.com/AmniAzham/python-security-log-analyzer
+    branch: authwatch-web-app
+    plan: free
+    autoDeploy: false
+    buildCommand: python -m pip install -r backend/requirements.txt && python -m unittest discover -s tests -v
+    startCommand: python -m uvicorn backend.app:app --host 0.0.0.0 --port $PORT --no-access-log --limit-concurrency 8 --timeout-keep-alive 5
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.14
+      - key: FRONTEND_ORIGINS
+        sync: false
